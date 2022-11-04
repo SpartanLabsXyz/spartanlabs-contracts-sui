@@ -46,7 +46,7 @@ Renters: People who are willing and able to borrow an NFT’s utility for a pric
 
 Since rental vault also stores all the `RentalTerms`, these functions exposes the `RentalTerms` to the rentee and renter.
 
-- add
+- `add_rental_term` - Adds a new `RentalTerm` to the `RentalTerm` collection.
 - `get_rental_terms` - Returns all the rental terms stored in the collection.
 - `get_rental_term_by_nft_id` - This function is used to get a rental term from the rental term list based on nft id.
 - `get_rental_term_by_renter` - This function is used to get a rental term from the rental term list based on renter address.
