@@ -1,5 +1,13 @@
 # SUI
 
+This repository contains contracts that are developed by Spartan Labs for the SUI blockchain.
+
+## Contracts
+
+### NFT Rental
+description: NFT Rental contract based on Spartan Labs article on NFT Rental #TODO : link to article
+path: `contracts/nft_rental`
+
 
 ### Basic Commands
 
