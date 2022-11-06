@@ -22,17 +22,18 @@ Renters: People who are willing and able to borrow an NFT’s utility for a pric
 
 #### Core Functions:
 
+- `init` - Create a vault with NFT of type T for rental
+
 - `lend_nft` - Lends an NFT to a vault before vault lends to rentee
 
   - The lender must approve the vault to transfer the NFT before calling this function.
   - The lender will decide on the conditions of rental - the rental period, and the rental fee.
   - The NFT will be transferred to the rental vault. The nft is being rented out by the lender it is stored in the vault until it finds a renter
+  - A `RentalTerm` object will be created outlining the terms of the rental.
 
-  - A `RentalContract` object will be created outlining the terms of the rental.
-
-- `rent_nft` - The rentee calls this function to rent an NFT.
+- `rent_nft` - The rentee calls this function to rent an NFT from the vault.
   - The rentee will pay the renter the agreed upon amount of tokens.
-  - A `RentalNft` struct will be
+  - A `RentalNft` struct will be 
 - `return_nft` - The lender calls this function to return the NFT to the lender.
 
   - This function would only proceed if the NFT that is rented out is has passed the rental period.
@@ -46,8 +47,8 @@ Renters: People who are willing and able to borrow an NFT’s utility for a pric
 
 Since rental vault also stores all the `RentalTerms`, these functions exposes the `RentalTerms` to the rentee and renter.
 
-- `add_rental_term` - Adds a new `RentalTerm` to the `RentalTerm` collection.
-- `get_rental_terms` - Returns all the rental terms stored in the collection.
+- `add_rental_term` - Adds a new `RentalTerm` to the `RentalTerm` collection table.
+- `get_rental_terms` - Returns all the rental terms stored in the collection table.
 - `get_rental_term_by_nft_id` - This function is used to get a rental term from the rental term list based on nft id.
 - `get_rental_term_by_renter` - This function is used to get a rental term from the rental term list based on renter address.
 
@@ -56,7 +57,8 @@ Since rental vault also stores all the `RentalTerms`, these functions exposes th
 Rental Vault struct - This struct is used to store the NFTs that are being rented out.
 
 ```move
-struct RentalVault has key,store,drop {
+struct RentalVault has key, store, drop {
+
 
 }
 ```
@@ -69,8 +71,10 @@ struct RentalVault has key,store,drop {
 
 #### Core Functions:
 
-- `add_rental_contract` - This function is used to add a rental contract to the rental contract list.
+- `add_rental_term` - This function is used to add a rental contract to the rental term list.
 - `set_rentee` - This function is used to set the rentee of a rental contract.
+- `get_rental_terms` - Return the details given a rental term object
+
 
 #### Structs
 
@@ -96,6 +100,8 @@ struct RentalTerm has key,store,drop {
 - This Rental NFT acts like a wrapper on top of the base NFT using the concept of Dynamic fields.
 - Dynamic fields allows us to provide a parent child relationship of the rental NFT and the underlying NFT. In this case, the Rental NFT is the parent and the NFT is the child.
 - Rental NFT wrapper restricts the utility of the NFT only to the renter, while still having the vault maintaining custody as the ownership of the parent rental nft belongs to the vault.
+  - Rental NFT is a shared object which is owned by the rental vault but has utility (read and write function) exposed to the rentee
+
 
 #### Core Functions
 
@@ -116,6 +122,7 @@ struct RentalNft has key,store,drop {
   - This will remove the child NFT object from the parent `RentalNft` object and send the NFT back to its the renter of the NFT.
   - The `RentalNft` object is then de-structured and destroyed.
 - `get_nft` - This function is used to get the details of the nft from the rental nft.
+
 
 #### 4. Sample NFT
 
