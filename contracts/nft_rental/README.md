@@ -22,7 +22,7 @@ Renters: People who are willing and able to borrow an NFT’s utility for a pric
 
 #### Core Functions:
 
-- `init` - Create a vault with NFT of type T for rental
+- `create_vault` - Create a vault with NFT of type T for rental
 
 - `lend_nft` - Lends an NFT to a vault before vault lends to rentee
 
