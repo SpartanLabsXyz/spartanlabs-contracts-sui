@@ -57,10 +57,13 @@ Since rental vault also stores all the `RentalTerms`, these functions exposes th
 Rental Vault struct - This struct is used to store the NFTs that are being rented out.
 
 ```move
-struct RentalVault has key, store, drop {
-
-
-}
+  struct RentalVault has key, store, drop {
+      vault_id: ID,
+      nft_type: string::String,
+      renters: vec_map::VecMap<UID, address>,
+      rentees: vec_map::VecMap<UID, address>,
+      rental_terms: vec_map::VecMap<UID, RentalTerms>,
+    }
 ```
 
 ### 3. Rental Term
@@ -108,11 +111,11 @@ struct RentalTerm has key,store,drop {
 Rental NFT struct - This struct is a dynamic field wrapper on top of the NFT struct that provides the rental logic on top of the NFT. Rental NFT is the parent and NFT is the child.
 
 ```move
-struct RentalNft has key,store,drop {
-    id: UID,
-
-
-}
+   struct RentalNft has key, store, drop {
+      id: ID,
+      nft_type: string::String,
+      end_date: u64
+    }
 ```
 
 - `add_nft` - This function is used to add an nft as the child object of the rental nft.

@@ -17,13 +17,12 @@ module nft_rental::rental_vault{
     use nft_rental::sample_nft::{Self, SwordNft as Nft};
     use nft_rental::sample_nft::{Self, NftOwnerCap};
 
-
-
         
     ///*///////////////////////////////////////////////////////////////
     //                         MAIN OBJECTS                          //
     /////////////////////////////////////////////////////////////////*/
     
+    /// This struct is used to store the NFTs that are being rented out.
     struct RentalVault has key, store, drop {
       vault_id: ID,
       nft_type: string::String,
@@ -31,12 +30,15 @@ module nft_rental::rental_vault{
       rentees: vec_map::VecMap<UID, address>,
       rental_terms: vec_map::VecMap<UID, RentalTerms>,
     }
+
+    /// This struct is a dynamic field wrapper on top of the NFT struct that provides the rental logic on top of the NFT. Rental NFT is the parent and NFT is the child.
     struct RentalNft has key, store, drop {
-      rental_nft_id: ID,
+      id: ID,
       nft_type: string::String,
       end_date: u64
     }
 
+    /// This struct is used to store the terms of the rental.
     struct RentalTerm has key, store, drop {
       term_id: ID,
       renter: address,
@@ -51,8 +53,7 @@ module nft_rental::rental_vault{
       payment_made: bool,
     }
 
-    /// Belongs to the owner of the vault. Has store, which
-    /// allows building something on top of it (ie shared object with multi-access policy for owner).
+    /// VaultOwnerCap is a capability that is used to restrict the access of the vault to only the owner of the vault.
     struct VaultOwnerCap has key, store {
       id: ID
     }
