@@ -121,9 +121,19 @@ struct RentalNft has key,store,drop {
 - `reclaim_nft` - This function is used to reclaim the nft from the rental nft.
   - This will remove the child NFT object from the parent `RentalNft` object and send the NFT back to its the renter of the NFT.
   - The `RentalNft` object is then de-structured and destroyed.
-- `get_nft` - This function is used to get the details of the nft from the rental nft.
+- `get_nft_id` - This function is used to get the details of the nft from the rental nft.
+
+#### 4. VaultOwnerCap
+- VaultOwnerCap is a capability that is used to restrict the access of the vault to only the owner of the vault.
+
+#### Struct
+```
+    struct VaultOwnerCap has key, store {
+      id: ID
+    }
+```
 
 
-#### 4. Sample NFT
+#### 5. Sample NFT
 
 - This is a sample NFT contract that is used to test the rental contract.

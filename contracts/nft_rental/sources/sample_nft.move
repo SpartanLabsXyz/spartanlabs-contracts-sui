@@ -7,16 +7,20 @@ module nft_rental::sample_nft {
     use sui::tx_context::{Self, TxContext};
 
     /// An example NFT that can be minted by anybody
-    struct DevNetNFT has key, store {
+    struct SwordNft has key, store {
         id: UID,
-        /// Name for the token
+        /// Name for the Sword
         name: string::String,
-        /// Description of the token
+        /// Description of the Sword
         description: string::String,
-        /// URL for the token
+        /// URL for the Sword
         url: Url,
-        // TODO: allow custom attributes
+        /// The level of the Sword
+        level: u64,
     }
+
+    /// Type that marks Owner's abilities to use the Sword `Nft`s.
+    struct NftOwnerCap has key { id: UID }
 
     // ===== Events =====
 
@@ -29,20 +33,25 @@ module nft_rental::sample_nft {
         name: string::String,
     }
 
+    ///*///////////////////////////////////////////////////////////////
+    //                         NFT LOGIC                     //
+    /////////////////////////////////////////////////////////////////*/
+    
+
     // ===== Public view functions =====
 
     /// Get the NFT's `name`
-    public fun name(nft: &DevNetNFT): &string::String {
+    public fun name(nft: &SwordNft): &string::String {
         &nft.name
     }
 
     /// Get the NFT's `description`
-    public fun description(nft: &DevNetNFT): &string::String {
+    public fun description(nft: &SwordNft): &string::String {
         &nft.description
     }
 
     /// Get the NFT's `url`
-    public fun url(nft: &DevNetNFT): &Url {
+    public fun url(nft: &SwordNft): &Url {
         &nft.url
     }
 
@@ -56,12 +65,16 @@ module nft_rental::sample_nft {
         ctx: &mut TxContext
     ) {
         let sender = tx_context::sender(ctx);
-        let nft = DevNetNFT {
+
+        // Create the Sword NFT
+        let nft = SwordNft {
             id: object::new(ctx),
             name: string::utf8(name),
             description: string::utf8(description),
-            url: url::new_unsafe_from_bytes(url)
+            url: url::new_unsafe_from_bytes(url),
+            level: 1,
         };
+
 
         event::emit(NFTMinted {
             object_id: object::id(&nft),
@@ -70,18 +83,21 @@ module nft_rental::sample_nft {
         });
 
         transfer::transfer(nft, sender);
+
+        // Create an instance of tyhe NFT Owner capability and send it to the owner of the NFT
+        transfer::transfer(NftOwnerCap {id: nft.id}, sender);
     }
 
     /// Transfer `nft` to `recipient`
     public entry fun transfer(
-        nft: DevNetNFT, recipient: address, _: &mut TxContext
+        nft: SwordNft, recipient: address, _: &mut TxContext
     ) {
         transfer::transfer(nft, recipient)
     }
 
     /// Update the `description` of `nft` to `new_description`
     public entry fun update_description(
-        nft: &mut DevNetNFT,
+        nft: &mut SwordNft,
         new_description: vector<u8>,
         _: &mut TxContext
     ) {
@@ -89,8 +105,35 @@ module nft_rental::sample_nft {
     }
 
     /// Permanently delete `nft`
-    public entry fun burn(nft: DevNetNFT, _: &mut TxContext) {
-        let DevNetNFT { id, name: _, description: _, url: _ } = nft;
+    public entry fun burn(nft: SwordNft, _: &mut TxContext) {
+        let SwordNft { id, name: _, description: _, url: _ } = nft;
         object::delete(id)
     }
+
+    /// Transfer the ownership by transferring the NFT Owner capability to recipient
+    public entry fun transfer_ownership(
+        _: &NftOwnerCap,
+        nft: &mut SwordNft,
+        recipient: address,
+        _: &mut TxContext
+    ) {
+        let SwordNft { id, name: _, description: _, url: _ } = nft;
+        let cap = NftOwnerCap { id };
+        transfer::transfer(cap, recipient)
+    }
+
+
+    // ===== Sword NFT Specific Function =====
+
+    /// Sample Function of levelling up the sword
+    public entry fun level_up(nft: &mut SwordNft) {
+        nft.level = nft.level + 1;
+    }
+
+    /// Sample Function of showing utility of the Sword NFT
+    /// This function can only be called by the owner of the sword
+    public entry fun slash(_: NftOwnerCap, nft: &SwordNft){
+        // TODO: Implement slashing logic
+    }
+
 }
