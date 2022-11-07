@@ -75,6 +75,8 @@ module nft_rental::rental_vault{
         rented_by: address
     }
 
+    // Event. When a rentee returns a nft to the rental vault.
+    struct NftReturned has copy, drop { id: ID }
 
 
     ///*///////////////////////////////////////////////////////////////
@@ -157,16 +159,30 @@ module nft_rental::rental_vault{
       let end_date = start_date + get_rental_period(rental_term);
 
       // Create a parent object with struct `RentalNft`
+      let rental_nft = RentalNft {
+        id: object::new(ctx),
+        nft_type: rental_term.nft_type,
+        end_date: end_date,
+      } = object::create(ctx, object::new(ctx));
 
       // Add Nft as a dynamic field as child object to parent object
+      add_nft(&rental_nft, nft, ctx);
 
       // Update `rental_term`
+      let sender = tx_context::sender(ctx);
+      set_rentee(rental_term, tx_context::sender(ctx));
 
-      // Make `rental_nft` a shared object
-
-      // Transfer `rental_nft` to rentee
+      // Make `rental_nft` a shared object to make it accessible to the rentee
+      transfer::share_object(rental_nft, sender);
 
       // Emit Nft Rented Event
+      emit(NftRented {
+        id: object::uid_to_inner(&rental_vault.id),
+        rental_term: rental_term,
+        nft_id: rental_term.nft_id,
+        renter: rental_term.renter,
+        rented_by: rental_term.rentee
+      });
 
     }
 
@@ -209,18 +225,20 @@ module nft_rental::rental_vault{
 
   /// This function is used to reclaim the nft from the rental nft.
   public entry fun reclaim_nft(rental_nft: &mut RentalNft, rental_vault: &RentalVault, ctx: &mut TxContext){
+
     //  Remove the child NFT object from the parent `RentalNft` object
     let nft = ofield::remove<vector<u8>, Nft>(
         &mut rental_nft.id,
         b"child",
     );
 
+    let renter = get_rental_term(rental_vault, rental_nft.id).renter;
+
     // Send the NFT back to its the renter of the NFT.
-    transfer::transfer(nft, tx_context::sender(ctx));
+    transfer::transfer(nft, renter);
 
-    // Check the ownership of the NFT has been transferred to the renter
-
-
+    // Emit NftReturned event
+    emit(NftReturned { id: object::uid_to_inner(&rental_vault.id) });
   }
 
   /// Changes the NFT via the parent `RentalNft` object.

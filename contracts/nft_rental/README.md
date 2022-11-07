@@ -33,7 +33,7 @@ Renters: People who are willing and able to borrow an NFT’s utility for a pric
 
 - `rent_nft` - The rentee calls this function to rent an NFT from the vault.
   - The rentee will pay the renter the agreed upon amount of tokens.
-  - A `RentalNft` struct will be 
+  - A `RentalNft` struct will be
 - `return_nft` - The lender calls this function to return the NFT to the lender.
 
   - This function would only proceed if the NFT that is rented out is has passed the rental period.
@@ -75,7 +75,6 @@ struct RentalVault has key, store, drop {
 - `set_rentee` - This function is used to set the rentee of a rental contract.
 - `get_rental_terms` - Return the details given a rental term object
 
-
 #### Structs
 
 Rental Term struct - This struct is used to store the terms of the rental.
@@ -102,7 +101,6 @@ struct RentalTerm has key,store,drop {
 - Rental NFT wrapper restricts the utility of the NFT only to the renter, while still having the vault maintaining custody as the ownership of the parent rental nft belongs to the vault.
   - Rental NFT is a shared object which is owned by the rental vault but has utility (read and write function) exposed to the rentee
 
-
 #### Core Functions
 
 #### Structs
@@ -124,15 +122,16 @@ struct RentalNft has key,store,drop {
 - `get_nft_id` - This function is used to get the details of the nft from the rental nft.
 
 #### 4. VaultOwnerCap
+
 - VaultOwnerCap is a capability that is used to restrict the access of the vault to only the owner of the vault.
 
 #### Struct
-```
+
+```move
     struct VaultOwnerCap has key, store {
       id: ID
     }
 ```
-
 
 #### 5. Sample NFT
 
