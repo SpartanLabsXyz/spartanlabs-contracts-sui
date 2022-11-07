@@ -2,15 +2,15 @@
 
 ### Terminoology
 
-Ownership: The person who the nft belongs to
+`Ownership`: The person who the nft belongs to
 
-Custody: The person who holds the nft
+`Custody`: The person who holds the nft
 
-Utility: The person who can use the properties of the nft
+`Utility`: The person who can use the properties of the nft
 
-Rentees: People who have a NFT of interest and are willing to lend that NFT out to the protocol to take custody of the NFT, but still remain owners of the NFT.
+`Rentees`: People who have a NFT of interest and are willing to lend that NFT out to the protocol to take custody of the NFT, but still remain owners of the NFT.
 
-Renters: People who are willing and able to borrow an NFT’s utility for a price that is paid to the renters
+`Renters`: People who are willing and able to borrow an NFT’s utility for a price that is paid to the renters
 
 ## Contracts
 
