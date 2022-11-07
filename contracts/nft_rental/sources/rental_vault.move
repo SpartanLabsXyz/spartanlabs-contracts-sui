@@ -1,17 +1,22 @@
 module nft_rental::rental_vault{
-    use sui::object::{Self, Info};
+    use sui::object::{Self, UID, ID};
     use sui::tx_context::{Self, TxContext};
     use sui::dynamic_object_field as ofield;
     use sui::vec_map::{Self, VecMap};
     use sui::transfer;
     use sui::event::emit;
+    use sui::coin::{Self, Coin};
+    use sui::coin::{Self, Coin};
+    use sui::sui::SUI;
 
     use std::vector as vec;
     use std::string;
 
 
     // Importing sample nft
-    use nft_rental::sample_nft::DevNetNFT;
+    use nft_rental::sample_nft::{Self, SwordNft as Nft};
+    use nft_rental::sample_nft::{Self, NftOwnerCap};
+
 
 
         
@@ -39,7 +44,7 @@ module nft_rental::rental_vault{
       nft_id: u64,
       nft_type: string::String,
       rental_period: u64,
-      rental_fee: u64,
+      rental_fee: Balance<T>,
       rental_start_time: u64,
       rental_end_time: u64,
       nft_returned: bool,
@@ -72,18 +77,21 @@ module nft_rental::rental_vault{
 
 
 
-
-
-
     ///*///////////////////////////////////////////////////////////////
     //                           ERROR CODES                         //
     /////////////////////////////////////////////////////////////////*/
+    
+    // TODO: Fill up error codes for more detailed error handling
+
+    /// Attempted to perform an admin-only operation without valid permissions
+    /// Try using the correct `AdminCap`
+    const EAdminOnly: u64 = 0;
 
     ///*///////////////////////////////////////////////////////////////
     //                         RENTAL VAULT LOGIC                     //
     /////////////////////////////////////////////////////////////////*/
     
-    // Create a vault with NFT of type T for rental
+    /// Create a vault with NFT of type T for rental
     public entry fun create_vault(nft_type: vector<u8>, ctx: &mut TxContext) {
         let id = object::new(ctx);
         let rental_vault = RentalVault {
@@ -102,8 +110,8 @@ module nft_rental::rental_vault{
     }
 
     
-    // Lends an NFT to a vault before vault lends to rentee.
-    public entry fun lend_nft(rental_vault: &mut RentalVault, nft: &mut DevNetNFT, time_period: u64, rental_fee: u64, ctx: &mut TxContext){
+    /// Lends an NFT to a vault before vault lends to rentee.
+    public entry fun lend_nft(rental_vault: &mut RentalVault, nft: &mut Nft, time_period: u64, rental_fee: u64, ctx: &mut TxContext){
 
       // Transfer the ownership of the NFT to the vault
       sample_nft::transfer_ownership(nft,rental_vault, ctx);
@@ -134,19 +142,19 @@ module nft_rental::rental_vault{
       
       // Emit NftTransferred event
       emit(NftTransferred { id: object::uid_to_inner(&rental_vault.id) });
-
     }
     
-    // The rentee calls this function to rent an NFT from the vault.
-    public entry fun rent_nft(rental_vault: &mut RentalVault, nft: &DevNetNFT, rental_term: &mut RentalTerm, ctx: &mut TxContext) {
-      // make payment to the rentee
+    /// The rentee calls this function to rent an NFT from the vault.
+    public entry fun rent_nft(_: &VaultOwnerCap, rental_vault: &mut RentalVault, nft: &Nft, rental_term: &mut RentalTerm, ctx: &mut TxContext) {
 
       // Check if payment has been made
       assert!(rental_term.payment_made == true, 0);
 
       // Get start date by using today's date
+      let start_date = time::now();
 
       // Get end date by adding rental_period to start date
+      let end_date = start_date + get_rental_period(rental_term);
 
       // Create a parent object with struct `RentalNft`
 
@@ -162,60 +170,143 @@ module nft_rental::rental_vault{
 
     }
 
-  //   - `pay_rent` - The rentee calls this function to pay the rent before he borrows the nft.
-  // - The rent has to be paid in advance and the rentee can borrow the NFT immediately after paying the rent.
-  // - The amout of rent should be determined by the rental period and the rental price of the NFT. However for now, we will just use a fixed amount of rent determined by the renter.
-  // - The rent payment would be transferred to the renter.
 
   // The rentee calls this function to pay the rent before he borrows the nft.
-  public entry fun pay_rent(rental_term: &mut RentalTerm, ctx: &mut TxContext){
+  public entry fun pay_rent(rental_term: &mut RentalTerm, payment: Coin<SUI>, ctx: &mut TxContext){
    // Check if payment has been made before. If so return the function
    if (rental_term.payment_made) {
     return
    };
    
     // Get payment amount from rental term
-    let payment_amount = rental_term.payment_amount;
+    let rental_fee = rental_term.rental_fee;
 
     // Assert if the rentee has enough for payment. Assume Sui for now
+    assert!(payment.value >= rental_fee, 0);
 
     // Make payment
+    transfer::transfer(payment, rental_term.rentee);
 
     // Update Rental Term with payment made
+    set_payment_made(rental_term);
+  }
 
+  // Get Rental Term belonging to the Renter of the Nft
+  public fun get_rental_term(rental_vault: &RentalVault, nft_id: UID): RentalTerm {
+    let rental_term = vec_map::get(&rental_vault.rental_terms, nft_id);
+    return rental_term
   }
 
 
+  ///*///////////////////////////////////////////////////////////////
+  //                         RENTAL NFT LOGIC                     //
+  /////////////////////////////////////////////////////////////////*/
+  
+  /// This function is used to add an nft as the child object of the rental nft.
+  public entry fun add_nft(rental_nft: &mut RentalNft, nft: Nft) {
+    ofield::add(&mut rental_nft.id, b"child", nft);
+  }
 
-    ///*///////////////////////////////////////////////////////////////
-    //                         RENTAL NFT LOGIC                     //
-    /////////////////////////////////////////////////////////////////*/
-    public entry fun add_nft(rental_nft: &mut RentalNft, nft: Nft) {
-      ofield::add(&mut rental_nft.id, b"child", nft);
-    }
-
-    public entry fun mutate_nft(rental_nft: &mut RentalNft) {
-    mutate_nft(ofield::borrow_mut<vector<u8>, Nft>(
+  /// This function is used to reclaim the nft from the rental nft.
+  public entry fun reclaim_nft(rental_nft: &mut RentalNft, rental_vault: &RentalVault, ctx: &mut TxContext){
+    //  Remove the child NFT object from the parent `RentalNft` object
+    let nft = ofield::remove<vector<u8>, Nft>(
         &mut rental_nft.id,
         b"child",
-     ));
-    }
+    );
+
+    // Send the NFT back to its the renter of the NFT.
+    transfer::transfer(nft, tx_context::sender(ctx));
+
+    // Check the ownership of the NFT has been transferred to the renter
+
+
+  }
+
+  /// Changes the NFT via the parent `RentalNft` object.
+  public entry fun mutate_nft(rental_nft: &mut RentalNft, rental_term: &RentalTerm, ctx: &mut TxContext) {
+  level_up(ofield::borrow_mut<vector<u8>, Nft>(
+      &mut rental_nft.id,
+      b"child",
+    ));
+  }
+
+  /// Utilises the child nft object 
+  public entry fun utilise_nft(rental_nft: &RentalNft, rental_term: &RentalTerm, ctx: &mut TxContext) {
+    // using hot potato pattern to transfer the ownership of the NFT to the rentee
+    let nft_owner_cap = // TODO:
+    
+    // Call the child nft function with the cap
+    slash(nft_owner_cap, ofield::borrow_mut<vector<u8>, Nft>(
+      &mut rental_nft.id,
+      b"child",
+    ));
+  }
+
+  /// Destroys parent `RentNft` object after the NFT has been returned.
+  public fun destroy_rental_nft(rental_nft: &mut RentalNft, ctx: &mut TxContext) {
+    object::destroy(ctx, rental_nft.id);
+  }
+
+  /// Returns an ID of a Nft for a given Rental Nft.
+  public fun get_nft_id(rental_nft: &RentalNft): u64 {
+    ofield::borrow<vector<u8>, Nft>(
+      &rental_nft.id,
+      b"child",
+    ).id
+  }
+
 
 
     ///*///////////////////////////////////////////////////////////////
     //                         RENTAL TERM LOGIC                     //
     /////////////////////////////////////////////////////////////////*/
     
-    // Sets the rentee of a rental Term
-    public entry fun set_rentee(){}
+    /// Sets the rentee of a rental Term
+    public entry fun set_rentee(rental_term: &mut RentalTerm, rentee: address){
+      rental_term.rentee = rentee;
+    }
+
+    /// Sets the rental start time of a rental Term
+    /// The start time is set when the rentee pays the rental fee
+    public entry fun set_rental_start_time(rental_term: &mut RentalTerm, rental_start_time: u64){
+      rental_term.rental_start_time = rental_start_time;
+    }
+
+    /// Sets the rental end time of a rental Term
+    public entry fun set_rental_end_time(rental_term: &mut RentalTerm, rental_end_time: u64){
+      rental_term.rental_end_time = rental_end_time;
+    }
+
+    /// Update Rental Term with payment made
+    public entry fun set_payment_made(rental_term: &mut RentalTerm){
+      rental_term.payment_made = true;
+    }
 
 
     // ===== Public view functions =====
     public entry fun get_renter(rental_term: &RentalTerm): address {
         rental_term.renter
     }
-    
 
+    public entry fun get_rentee(rental_term: &RentalTerm): address {
+        rental_term.rentee
+    }
+
+    /// Returns the Rental Period of a Rental Term
+    /// The rental period is the number of days the rentee can borrow the NFT
+    public entry fun get_rental_period(rental_term: &RentalTerm): u64 {
+        rental_term.rental_period
+    }
+
+    ///*///////////////////////////////////////////////////////////////
+    //                         ADMIN ONLY LOGIC                     //
+    /////////////////////////////////////////////////////////////////*/
+    
+    /// Checks if the address is the admin of the vault
+    fun check_vault_owner<T>(self: &RentalVault, nft_owner_cap: &NftOwnerCap){
+      assert!(object::borrow_id(self) == &nft_owner_cap.flash_lender_id, EAdminOnly);
+    }
 
     
 
