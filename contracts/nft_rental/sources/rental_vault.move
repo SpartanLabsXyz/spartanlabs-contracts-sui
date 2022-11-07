@@ -325,7 +325,4 @@ module nft_rental::rental_vault{
     fun check_vault_owner<T>(self: &RentalVault, nft_owner_cap: &NftOwnerCap){
       assert!(object::borrow_id(self) == &nft_owner_cap.flash_lender_id, EAdminOnly);
     }
-
-    
-
 }
