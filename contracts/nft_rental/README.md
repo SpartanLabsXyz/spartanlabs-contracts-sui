@@ -97,7 +97,7 @@ struct RentalTerm has key,store,drop {
 }
 ```
 
-### 3. Rental NFT
+### 4. Rental NFT
 
 - This Rental NFT acts like a wrapper on top of the base NFT using the concept of Dynamic fields.
 - Dynamic fields allows us to provide a parent child relationship of the rental NFT and the underlying NFT. In this case, the Rental NFT is the parent and the NFT is the child.
@@ -124,7 +124,7 @@ Rental NFT struct - This struct is a dynamic field wrapper on top of the NFT str
   - The `RentalNft` object is then de-structured and destroyed.
 - `get_nft_id` - This function is used to get the details of the nft from the rental nft.
 
-#### 4. VaultOwnerCap
+### 5. VaultOwnerCap
 
 - VaultOwnerCap is a capability that is used to restrict the access of the vault to only the owner of the vault.
 
@@ -136,6 +136,6 @@ Rental NFT struct - This struct is a dynamic field wrapper on top of the NFT str
     }
 ```
 
-#### 5. Sample NFT
+### 6. Sample NFT
 
 - This is a sample NFT contract that is used to test the rental contract.
